@@ -1,2 +1,2 @@
-##Pinchuk Michail Sergeevich
-#M80-208Б-23
+Pinchuk Michail Sergeevich
+M80-208Б-23
