@@ -1,64 +1,43 @@
 :- consult('one.pl').
 
-% Предикат для вычисления среднего балла по предмету
-average_grade(SubjectCode, Average) :-
-    findall(Grade, grade(_, SubjectCode, Grade), Grades),  
-    length(Grades, Count),
-    Count > 0, 
-    sum_list(Grades, Sum),
-    Average is Sum / Count.
+% Функция для вычисления среднего балла для каждого предмета
+average_grade(Subject, Average) :-
+    findall(Grade, grade(_, Subject, Grade), Grades), 
+    length(Grades, Count),                           
+    sumlist(Grades, Total),                        
+    (Count > 0 -> Average is Total / Count ; Average is 0). 
 
-% Подсчет не сдавших студентов для каждого предмета
-count_failing_students_subject(SubjectCode, Count) :-
-    findall(Student,
-        (grade(Student, SubjectCode, Grade), Grade < 3),
-        FailingStudents),  
-    list_to_set(FailingStudents, UniqueFailingStudents),  % Уникальные имена студентов
-    length(UniqueFailingStudents, Count).  
+print_average_grades :-
+    findall(Subject, subject(Subject, _), Subjects), 
+    forall(member(Subject, Subjects), (
+        average_grade(Subject, Average),
+        format('Средний балл по ~w: ~2f~n', [Subject, Average])
+    )).
 
-% Обработка и вывод количества не сдавших студентов по предметам
-count_failing_students_per_subject :-
-    subject(SubjectCode, SubjectName),
-    count_failing_students_subject(SubjectCode, Count),
-    format('Количество не сдавших студентов по ~w (~w): ~d~n', [SubjectCode, SubjectName, Count]),
-    fail.
-count_failing_students_per_subject. 
+% Функция для подсчета не сдавших студентов в каждой группе
+not_passed_students(Group, Count) :-
+    findall(Student, (student(Group, Student), grade(Student, _, Grade), Grade < 3), Students),
+    length(Students, Count).
 
-% Подсчет не сдавших студентов для каждой группы
-count_failing_students(Group, Count) :-
-    findall(Student,
-        (grade(Student, Group, Grade), Grade < 3),
-        FailingStudents),  
-    list_to_set(FailingStudents, UniqueFailingStudents),  % Уникальные имена студентов
-    length(UniqueFailingStudents, Count). 
+% Функция для получения списка всех групп
+all_groups(Groups) :-
+    setof(Group, Student^student(Group, Student), Groups).
 
-% Подсчет не сдавших студентов по группам
-count_failing_students_per_group :-
-    findall(Group, grade(_, Group, _), Groups),  
-    list_to_set(Groups, UniqueGroups),  % Уникальные группы
-    count_failing_students_in_groups(UniqueGroups).
+% Функция для подсчета не сдавших студентов по всем группам
+all_not_passed(Result) :-
+    all_groups(Groups),
+    findall((Group, Count), (member(Group, Groups), not_passed_students(Group, Count)), Result).
 
-% Подсчет не сдавших студентов в уникальных группах
-count_failing_students_in_groups([]). 
-count_failing_students_in_groups([Group | Tail]) :-
-    count_failing_students(Group, Count),
-    format('Количество не сдавших студентов в группе ~w: ~d~n', [Group, Count]),
-    count_failing_students_in_groups(Tail).
+% Функция для подсчета не сдавших студентов по каждому предмету
+not_passed_students_subject(Subject, Count) :-
+    findall(Student, (grade(Student, Subject, Grade), Grade < 3), Students),
+    length(Students, Count).
 
-% Запуск всех запросов
-run_tests :-
-    format('~nСредний балл по предметам:~n', []),
-    findall(SubjectCode, subject(SubjectCode, _), Subjects),
-    print_average_grades(Subjects),
-    format('~nКоличество не сдавших студентов по предметам:~n', []),
-    count_failing_students_per_subject,
-    format('~nКоличество не сдавших студентов по группам:~n', []),
-    count_failing_students_per_group.
+% Функция для получения списка всех предметов
+all_subjects(Subjects) :-
+    setof(Subject, Name^subject(Subject, Name), Subjects).
 
-% Вывод средних баллов по предметам
-print_average_grades([]).
-print_average_grades([SubjectCode | Tail]) :-
-    average_grade(SubjectCode, Average),
-    subject(SubjectCode, SubjectName),
-    format('Средний балл по ~w (~w): ~2f~n', [SubjectCode, SubjectName, Average]),
-    print_average_grades(Tail).
+% Функция для подсчета не сдавших студентов по всем предметам
+not_passed_subjects(Result) :-
+    all_subjects(Subjects),
+    findall((Subject, Count), (member(Subject, Subjects), not_passed_students_subject(Subject, Count)), Result).
